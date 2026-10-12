@@ -1,0 +1,13 @@
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Local tooling (not needed — this project has no build step)
+node_modules/
+package.json
+package-lock.json
+
+# Logs
+*.log

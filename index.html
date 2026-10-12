@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="LitDigest — a static literature tracker that turns recent publications from your tracked journals and topics into a visually rich, email-ready research newsletter.">
+  <title>LitDigest — Literature Tracker &amp; Newsletter Generator</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%23a4543a'/><text x='3' y='12' font-size='11' font-family='Georgia' fill='%23faf6ef'>L</text></svg>">
+</head>
+<body>
+  <header class="site-header no-print">
+    <div class="wrap">
+      <h1 class="site-title">LitDigest</h1>
+      <p class="site-tagline">Literature tracker &amp; newsletter generator — follow journals, topics, and preprints, then turn what is new into a visually rich digest you can email, print, or paste anywhere. No account, no server; your settings never leave this browser.</p>
+    </div>
+  </header>
+
+  <nav class="tab-bar no-print" role="tablist" aria-label="Tools">
+    <div class="wrap tab-bar-inner">
+      <button class="tab-btn active" role="tab" aria-selected="true" aria-controls="panel-digest" id="tab-digest" data-tab="digest">Digest</button>
+      <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-sources" id="tab-sources" data-tab="sources">Sources &amp; Topics</button>
+      <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-settings" id="tab-settings" data-tab="settings">Settings</button>
+    </div>
+  </nav>
+
+  <main class="wrap">
+
+    <!-- ================= TAB 1: DIGEST ================= -->
+    <section class="tab-panel active" id="panel-digest" role="tabpanel" aria-labelledby="tab-digest">
+      <h2 class="no-print">Your digest</h2>
+      <p class="panel-intro no-print">Click <strong>Generate digest</strong> to pull the latest papers from your tracked journals, topics, and arXiv feeds and compose a newsletter below. LitDigest is a static page — there is <strong>no server, so no automatic daily schedule</strong>. Bookmark this page and run it each morning or each week; your configuration and past digests are saved in this browser.</p>
+
+      <div class="digest-controls no-print">
+        <div class="digest-control">
+          <label class="field-label" for="digest-days">Cover the last</label>
+          <select id="digest-days">
+            <option value="7">7 days</option>
+            <option value="14">14 days</option>
+            <option value="30" selected>30 days</option>
+            <option value="90">90 days</option>
+          </select>
+        </div>
+        <div class="digest-control digest-control-grow">
+          <label class="field-label">Currently tracking</label>
+          <p class="hint" id="digest-tracking-summary">—</p>
+        </div>
+        <div class="digest-control">
+          <label class="field-label">&nbsp;</label>
+          <div class="button-row" style="margin-top:0">
+            <button id="digest-run" class="btn primary">Generate digest</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="progress-wrap hidden no-print" id="digest-progress-wrap" aria-live="polite">
+        <div class="progress-track"><div class="progress-fill" id="digest-progress-fill"></div></div>
+        <span class="progress-label" id="digest-progress-label">0 / 0</span>
+      </div>
+      <p class="hint no-print" id="digest-progress-detail" aria-live="polite"></p>
+
+      <div id="digest-errors" class="hidden no-print"></div>
+
+      <div class="results hidden" id="digest-results">
+        <div class="button-row no-print">
+          <button id="digest-export-email" class="btn">Download email HTML</button>
+          <button id="digest-print" class="btn">Print / save as PDF</button>
+          <button id="digest-copy" class="btn ghost">Copy all as text</button>
+        </div>
+        <details class="export-help no-print" id="digest-email-help">
+          <summary>How to send the email HTML via Gmail or Substack</summary>
+          <div class="export-help-body">
+            <p><strong>Gmail (paste method):</strong> download the file, open it in your browser, select all (<kbd>Ctrl/Cmd+A</kbd>), copy (<kbd>Ctrl/Cmd+C</kbd>), then paste directly into a Gmail compose window. The inline-styled layout survives the paste.</p>
+            <p><strong>Substack:</strong> create a new post, use <em>More → Import HTML</em> (or paste into the editor as above). Buttons and cards are plain tables with inline styles, so they render in every major email client.</p>
+            <p>The file is fully self-contained — the only links in it point to the papers themselves.</p>
+          </div>
+        </details>
+
+        <!-- The newsletter itself: kept chrome-free so the print stylesheet can show only this. -->
+        <div id="newsletter-output" class="newsletter-output" aria-live="polite"></div>
+      </div>
+
+      <p class="hint no-print" id="digest-empty">Nothing generated yet. Configure your sources in the Sources &amp; Topics tab, then click Generate.</p>
+
+      <hr class="divider no-print">
+
+      <section class="history-panel no-print" aria-labelledby="history-heading">
+        <h3 id="history-heading">Digest history</h3>
+        <p class="hint">The last 12 digests are stored in this browser. Reload any of them to re-view or re-export.</p>
+        <ul class="history-list" id="history-list"></ul>
+        <p class="hint" id="history-empty">No digests yet.</p>
+      </section>
+      <p class="error-line hidden no-print" id="digest-error" role="alert"></p>
+    </section>
+
+    <!-- ================= TAB 2: SOURCES & TOPICS ================= -->
+    <section class="tab-panel" id="panel-sources" role="tabpanel" aria-labelledby="tab-sources">
+      <h2>Sources &amp; topics</h2>
+      <p class="panel-intro">Tell LitDigest what to follow. Everything is saved automatically in this browser. One honest note up front: <strong>ResearchGate and most publisher websites block programmatic access</strong>, so LitDigest does not scrape them — it tracks the same journals' papers through the open <a href="https://docs.openalex.org/" rel="noopener">OpenAlex</a>, <a href="https://api.crossref.org/" rel="noopener">Crossref</a>, and <a href="https://info.arxiv.org/help/api/" rel="noopener">arXiv</a> indexes, which is also how the links in your digest are resolved.</p>
+
+      <h3>Research topics</h3>
+      <p class="hint">Keywords or phrases, comma- or line-separated. These drive the "Trending on your topics" section (OpenAlex relevance search + Crossref supplement) and the relevance scoring of every paper.</p>
+      <label class="field-label" for="topics-input">Topics</label>
+      <textarea id="topics-input" rows="4" spellcheck="false" placeholder="strategic management, organizational learning&#10;entrepreneurial orientation&#10;corporate governance"></textarea>
+      <p class="hint" id="topics-count"></p>
+
+      <hr class="divider">
+
+      <h3>Tracked journals</h3>
+      <p class="hint">Journals you always want covered. Paste a <strong>journal name, ISSN, or URL</strong> (journal homepage, Scopus/SJR page, portal.issn.org link, publisher page) — LitDigest resolves it to an exact journal record via the OpenAlex sources API and asks you to confirm before adding.</p>
+
+      <div class="journal-add">
+        <div class="journal-add-input">
+          <label class="field-label" for="journal-query">Add a journal</label>
+          <input type="text" id="journal-query" placeholder="e.g. Academy of Management Journal — or 0001-4273 — or a URL" spellcheck="false" autocomplete="off">
+        </div>
+        <div class="journal-add-btn">
+          <label class="field-label">&nbsp;</label>
+          <button id="journal-resolve" class="btn primary">Resolve journal</button>
+        </div>
+      </div>
+      <p class="hint" id="journal-resolve-status" aria-live="polite"></p>
+      <div id="journal-candidates" class="journal-candidates hidden"></div>
+
+      <h4 class="subheading">Your tracked journals</h4>
+      <ul class="tracked-list" id="tracked-list"></ul>
+      <p class="hint" id="tracked-empty">No journals tracked yet. Add one above, or use the starter list below.</p>
+
+      <h4 class="subheading">Starter list — major journals by field</h4>
+      <p class="hint">One click to add. Names and ISSNs verified against the Crossref/OpenAlex registries (October 2026). Business &amp; management heavy by default — add only what you read.</p>
+      <div id="starter-groups"></div>
+
+      <hr class="divider">
+
+      <h3>Preprint feeds (optional)</h3>
+      <p class="hint">arXiv categories to sweep for new preprints. These land in the "Preprints" section of the digest. Note: arXiv's API does not allow direct browser access (it sends no CORS headers), so LitDigest tries a direct fetch first, then routes the preprint query through a public CORS relay — only the category code is sent, never any keys. If the relays are unavailable the preprint section is skipped and the digest tells you.</p>
+      <div id="arxiv-groups"></div>
+      <label class="field-label" for="arxiv-custom" style="margin-top:0.75rem">Add another category</label>
+      <div class="journal-add">
+        <div class="journal-add-input">
+          <input type="text" id="arxiv-custom" placeholder="e.g. econ.GN" spellcheck="false" autocomplete="off">
+        </div>
+        <div class="journal-add-btn">
+          <button id="arxiv-add" class="btn">Add category</button>
+        </div>
+      </div>
+      <p class="error-line hidden" id="sources-error" role="alert"></p>
+    </section>
+
+    <!-- ================= TAB 3: SETTINGS ================= -->
+    <section class="tab-panel" id="panel-settings" role="tabpanel" aria-labelledby="tab-settings">
+      <h2>Settings</h2>
+
+      <h3>Newsletter branding</h3>
+      <label class="field-label" for="newsletter-title">Newsletter title (masthead)</label>
+      <input type="text" id="newsletter-title" class="text-input" placeholder="Strategy Research Weekly" maxlength="80">
+      <p class="hint">Shown as the masthead of the in-app digest, the email HTML, the print view, and the text export.</p>
+
+      <hr class="divider">
+
+      <h3>AI takeaways (optional, BYO key)</h3>
+      <p class="hint">With an OpenAI-compatible endpoint configured, LitDigest writes a 2–3 sentence plain-language takeaway per paper and a one-line intro per section. Without it, digests use abstract excerpts — everything still works. Your key is stored <strong>only in this browser's localStorage</strong> and sent <strong>only to the endpoint you configure</strong>.</p>
+      <div class="settings-grid">
+        <div>
+          <label class="field-label" for="ai-endpoint">API base URL</label>
+          <input type="text" id="ai-endpoint" class="text-input" placeholder="https://api.openai.com/v1" autocomplete="off" spellcheck="false">
+        </div>
+        <div>
+          <label class="field-label" for="ai-model">Model</label>
+          <input type="text" id="ai-model" class="text-input" placeholder="gpt-4o-mini" autocomplete="off" spellcheck="false">
+        </div>
+        <div>
+          <label class="field-label" for="ai-key">API key</label>
+          <input type="password" id="ai-key" class="text-input" placeholder="sk-…" autocomplete="off">
+        </div>
+      </div>
+      <div class="button-row">
+        <button id="ai-save" class="btn primary">Save AI settings</button>
+        <button id="ai-test" class="btn">Test connection</button>
+        <button id="ai-clear" class="btn ghost">Clear AI settings</button>
+      </div>
+      <p class="hint" id="ai-status" aria-live="polite"></p>
+
+      <hr class="divider">
+
+      <h3>Configuration backup</h3>
+      <p class="hint">Export your topics, journals, arXiv categories, date range, and newsletter title as a <code>.json</code> file, or import one. AI keys are never included in exports.</p>
+      <div class="button-row">
+        <button id="config-export" class="btn">Export config (.json)</button>
+        <button id="config-import-btn" class="btn">Import config…</button>
+        <input type="file" id="config-import-file" accept=".json,application/json" class="hidden">
+      </div>
+      <p class="hint" id="config-status" aria-live="polite"></p>
+      <p class="error-line hidden" id="settings-error" role="alert"></p>
+    </section>
+  </main>
+
+  <footer class="site-footer no-print">
+    <div class="wrap">
+      <p>LitDigest runs entirely in your browser. Metadata comes from the free, CORS-enabled <a href="https://docs.openalex.org/" rel="noopener">OpenAlex</a>, <a href="https://api.crossref.org/" rel="noopener">Crossref</a>, and <a href="https://info.arxiv.org/help/api/" rel="noopener">arXiv</a> APIs. Coverage depends on index lag — very fresh papers can take days to appear; always follow the DOI link for the authoritative record.</p>
+    </div>
+  </footer>
+
+  <script src="js/data/journals.js"></script>
+  <script src="js/sources.js"></script>
+  <script src="js/fetch.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/newsletter.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
